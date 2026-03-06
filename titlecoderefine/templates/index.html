@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TitleCodeRefine — AI Code Review Engine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-bracket">{</span>
+        <span class="logo-text">TCR</span>
+        <span class="logo-bracket">}</span>
+        <span class="logo-full">TitleCodeRefine</span>
+      </div>
+      <nav class="nav-pills">
+        <button class="nav-pill active" data-tab="review">Review</button>
+        <button class="nav-pill" data-tab="rewrite">Rewrite</button>
+        <button class="nav-pill" data-tab="explain">Explain</button>
+      </nav>
+      <div class="header-badge">
+        <span class="badge-dot"></span>
+        <span>Gemini AI</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-grid-bg"></div>
+    <div class="hero-content">
+      <div class="hero-tag">Generative AI · Code Intelligence</div>
+      <h1 class="hero-title">Code Review<br /><em>Reimagined</em></h1>
+      <p class="hero-subtitle">Detect bugs, optimize performance, enforce security — powered by Gemini AI</p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-num" id="statBugs">0</span><span class="stat-label">Bugs Found</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><span class="stat-num" id="statFiles">0</span><span class="stat-label">Files Analyzed</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><span class="stat-num" id="statScore">—</span><span class="stat-label">Avg Score</span></div>
+    </div>
+  </section>
+
+  <!-- Main App -->
+  <main class="app-container">
+
+    <!-- TAB: REVIEW -->
+    <div class="tab-panel active" id="tab-review">
+      <div class="panel-grid">
+
+        <!-- Input Panel -->
+        <div class="panel input-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="panel-icon">⌨</span>
+              Source Code
+            </div>
+            <div class="panel-controls">
+              <select id="languageSelect" class="select-input">
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="java">Java</option>
+                <option value="cpp">C++</option>
+                <option value="c">C</option>
+                <option value="go">Go</option>
+                <option value="rust">Rust</option>
+                <option value="php">PHP</option>
+                <option value="ruby">Ruby</option>
+                <option value="swift">Swift</option>
+                <option value="kotlin">Kotlin</option>
+              </select>
+              <button class="btn-ghost" id="clearBtn">Clear</button>
+              <button class="btn-ghost" id="sampleBtn">Sample</button>
+            </div>
+          </div>
+
+          <!-- Analysis Type -->
+          <div class="analysis-types">
+            <label class="type-chip active" data-type="full">
+              <input type="radio" name="analysisType" value="full" checked hidden />
+              <span class="chip-icon">◈</span> Full Audit
+            </label>
+            <label class="type-chip" data-type="bugs">
+              <input type="radio" name="analysisType" value="bugs" hidden />
+              <span class="chip-icon">⚠</span> Bugs Only
+            </label>
+            <label class="type-chip" data-type="performance">
+              <input type="radio" name="analysisType" value="performance" hidden />
+              <span class="chip-icon">⚡</span> Performance
+            </label>
+            <label class="type-chip" data-type="security">
+              <input type="radio" name="analysisType" value="security" hidden />
+              <span class="chip-icon">🔒</span> Security
+            </label>
+          </div>
+
+          <div class="editor-wrapper">
+            <div class="line-numbers" id="lineNumbers"></div>
+            <textarea id="codeInput" class="code-editor" placeholder="// Paste your code here...&#10;// Supports Python, JS, Java, C++, Go, Rust and more"></textarea>
+          </div>
+
+          <div class="panel-footer">
+            <span class="char-count" id="charCount">0 chars · 0 lines</span>
+            <button class="btn-primary" id="analyzeBtn">
+              <span class="btn-text">Analyze Code</span>
+              <span class="btn-icon">→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="panel results-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="panel-icon">◎</span>
+              Analysis Results
+            </div>
+            <div id="scoreDisplay" class="score-display hidden">
+              <span id="scoreLabel" class="score-label">Quality Score</span>
+              <span id="scoreValue" class="score-value">—</span>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div id="emptyState" class="empty-state">
+            <div class="empty-icon">⟁</div>
+            <p>Paste your code and click <strong>Analyze</strong> to begin</p>
+            <p class="empty-hint">Supports 12+ languages · Powered by Gemini 1.5</p>
+          </div>
+
+          <!-- Loading State -->
+          <div id="loadingState" class="loading-state hidden">
+            <div class="loader-ring">
+              <div></div><div></div><div></div><div></div>
+            </div>
+            <p class="loading-text">Analyzing with Gemini AI<span class="dots"></span></p>
+            <div class="loading-steps" id="loadingSteps">
+              <div class="loading-step active">Parsing code structure</div>
+              <div class="loading-step">Detecting bugs &amp; vulnerabilities</div>
+              <div class="loading-step">Optimizing performance</div>
+              <div class="loading-step">Generating rewrite</div>
+            </div>
+          </div>
+
+          <!-- Results Content -->
+          <div id="resultsContent" class="results-content hidden">
+
+            <!-- Summary Bar -->
+            <div class="summary-bar" id="summaryBar"></div>
+
+            <!-- Score Meter -->
+            <div class="score-section" id="scoreSection">
+              <div class="score-meter">
+                <svg viewBox="0 0 120 60" class="score-arc">
+                  <path d="M10,60 A50,50 0 0,1 110,60" fill="none" stroke="#1a1a2e" stroke-width="8"/>
+                  <path d="M10,60 A50,50 0 0,1 110,60" fill="none" stroke="#e8e0d0" stroke-width="8"
+                        stroke-dasharray="157" stroke-dashoffset="157" id="scoreArc" class="score-arc-fill"/>
+                </svg>
+                <div class="score-center">
+                  <span id="scoreBig" class="score-big">—</span>
+                  <span class="score-small">/100</span>
+                </div>
+              </div>
+              <div class="score-breakdown" id="scoreBreakdown"></div>
+            </div>
+
+            <!-- Issues Tabs -->
+            <div class="issues-nav">
+              <button class="issue-tab active" data-issue="bugs">
+                Bugs <span class="issue-count" id="bugCount">0</span>
+              </button>
+              <button class="issue-tab" data-issue="performance">
+                Performance <span class="issue-count" id="perfCount">0</span>
+              </button>
+              <button class="issue-tab" data-issue="security">
+                Security <span class="issue-count" id="secCount">0</span>
+              </button>
+              <button class="issue-tab" data-issue="practices">
+                Best Practices <span class="issue-count" id="bpCount">0</span>
+              </button>
+            </div>
+
+            <div class="issues-content" id="issuesContent"></div>
+
+            <!-- Optimized Code -->
+            <div class="optimized-section" id="optimizedSection">
+              <div class="section-header">
+                <h3 class="section-title">✦ Optimized Code</h3>
+                <div class="section-actions">
+                  <button class="btn-ghost-sm" id="copyOptimized">Copy</button>
+                  <button class="btn-ghost-sm" id="diffView">Diff View</button>
+                </div>
+              </div>
+              <div class="improvements-list" id="improvementsList"></div>
+              <div class="code-block-wrapper">
+                <pre class="code-block" id="optimizedCode"></pre>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: REWRITE -->
+    <div class="tab-panel" id="tab-rewrite">
+      <div class="panel-grid">
+        <div class="panel input-panel">
+          <div class="panel-header">
+            <div class="panel-title"><span class="panel-icon">⟳</span> Code to Rewrite</div>
+            <select id="rewriteLangSelect" class="select-input">
+              <option value="python">Python</option>
+              <option value="javascript">JavaScript</option>
+              <option value="typescript">TypeScript</option>
+              <option value="java">Java</option>
+              <option value="cpp">C++</option>
+              <option value="go">Go</option>
+              <option value="rust">Rust</option>
+            </select>
+          </div>
+          <textarea id="rewriteInput" class="code-editor" style="height:280px" placeholder="// Paste code to rewrite..."></textarea>
+          <div class="instruction-area">
+            <label class="field-label">Custom Instructions (optional)</label>
+            <textarea id="rewriteInstructions" class="instruction-input" placeholder="e.g. Convert to async/await, add error handling, use TypeScript types..."></textarea>
+          </div>
+          <div class="panel-footer">
+            <span></span>
+            <button class="btn-primary" id="rewriteBtn">
+              <span class="btn-text">Rewrite Code</span>
+              <span class="btn-icon">⟳</span>
+            </button>
+          </div>
+        </div>
+        <div class="panel results-panel">
+          <div class="panel-header">
+            <div class="panel-title"><span class="panel-icon">✦</span> Rewritten Code</div>
+            <button class="btn-ghost" id="copyRewritten" style="display:none">Copy</button>
+          </div>
+          <div id="rewriteEmpty" class="empty-state">
+            <div class="empty-icon">⟳</div>
+            <p>Submit your code to get an AI-powered rewrite</p>
+          </div>
+          <div id="rewriteLoading" class="loading-state hidden">
+            <div class="loader-ring"><div></div><div></div><div></div><div></div></div>
+            <p class="loading-text">Rewriting with Gemini<span class="dots"></span></p>
+          </div>
+          <div id="rewriteResult" class="hidden" style="padding:1.5rem">
+            <div class="changes-list" id="changesList"></div>
+            <div class="code-block-wrapper">
+              <pre class="code-block" id="rewrittenCode"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: EXPLAIN -->
+    <div class="tab-panel" id="tab-explain">
+      <div class="panel-grid">
+        <div class="panel input-panel">
+          <div class="panel-header">
+            <div class="panel-title"><span class="panel-icon">?</span> Code to Explain</div>
+            <select id="explainLangSelect" class="select-input">
+              <option value="python">Python</option>
+              <option value="javascript">JavaScript</option>
+              <option value="typescript">TypeScript</option>
+              <option value="java">Java</option>
+              <option value="cpp">C++</option>
+              <option value="go">Go</option>
+              <option value="rust">Rust</option>
+            </select>
+          </div>
+          <textarea id="explainInput" class="code-editor" style="height:400px" placeholder="// Paste code to explain..."></textarea>
+          <div class="panel-footer">
+            <span></span>
+            <button class="btn-primary" id="explainBtn">
+              <span class="btn-text">Explain Code</span>
+              <span class="btn-icon">?</span>
+            </button>
+          </div>
+        </div>
+        <div class="panel results-panel">
+          <div class="panel-header">
+            <div class="panel-title"><span class="panel-icon">◉</span> Explanation</div>
+          </div>
+          <div id="explainEmpty" class="empty-state">
+            <div class="empty-icon">◉</div>
+            <p>Submit code to get a detailed AI explanation</p>
+          </div>
+          <div id="explainLoading" class="loading-state hidden">
+            <div class="loader-ring"><div></div><div></div><div></div><div></div></div>
+            <p class="loading-text">Analyzing with Gemini<span class="dots"></span></p>
+          </div>
+          <div id="explainResult" class="hidden" style="padding:1.5rem"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- API Key Modal -->
+  <div id="apiModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Configure API Key</h2>
+        <button class="modal-close" id="closeModal">✕</button>
+      </div>
+      <p class="modal-desc">Enter your Gemini API key to enable AI-powered analysis. Get one free at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a></p>
+      <input type="password" id="apiKeyInput" class="text-input" placeholder="AIza..." />
+      <div class="modal-footer">
+        <button class="btn-ghost" id="closeModal2">Cancel</button>
+        <button class="btn-primary" id="saveApiKey">Save Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
